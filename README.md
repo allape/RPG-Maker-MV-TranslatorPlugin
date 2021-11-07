@@ -11,8 +11,8 @@
 ### Instructions
 - Download release zip
 - Download Cheat Plugin patch at [GitHub](https://github.com/emerladCoder/RPG-Maker-MV-Cheat-Menu-Plugin)
-- Copy Auto_Translator.js into Cheat_Menu/ of Cheat Plugin
-- Replace plugins_patch.txt in Cheat_Menu/ of Cheat Plugin
+- Copy Auto_Translator.js into Cheat_Menu/www/js/plugins
+- Replace plugins_patch.txt in Cheat_Menu/ with the same name file in release
 - Copy all files to game folder
 - Run MVPluginPatcher.exe
 
