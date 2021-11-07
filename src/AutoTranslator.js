@@ -58,6 +58,7 @@ var AutoTranslator = /** @class */ (function () {
         this.translatorServerBaseURL = 'https://translate.mentality.rip';
         this.sourceLanguage = 'ja';
         this.targetLanguage = 'en';
+        this.hidden = false;
         this.http = axios_1.default.create({});
         // region Game_Message
         this.gameMessages = {};
@@ -66,19 +67,28 @@ var AutoTranslator = /** @class */ (function () {
         space.innerHTML = ' ';
         var hDivider = document.createElement('div');
         hDivider.style.height = '1px';
+        hDivider.style.margin = '5px 0';
         hDivider.style.backgroundColor = 'white';
         this.div = document.createElement('div');
         this.div.style.position = 'fixed';
         this.div.style.top = '0';
         this.div.style.left = '0';
-        this.div.style.width = '100%';
+        this.div.style.padding = '10px';
+        this.div.style.borderBottomRightRadius = '10px';
+        this.div.style.minWidth = '50%';
+        this.div.style.maxWidth = '100%';
         this.div.style.maxHeight = '50%';
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)';
         this.div.style.color = 'white';
         this.div.style.overflowY = 'auto';
+        this.div.style.overflowX = 'hidden';
+        this.div.style.whiteSpace = 'wrap';
+        this.div.style.verticalAlign = 'center';
         this.div.style.zIndex = "" + Number.MAX_SAFE_INTEGER;
         this.translatorServerBaseURLInput = document.createElement('input');
         this.translatorServerBaseURLInput.value = this.translatorServerBaseURL;
+        this.translatorServerBaseURLInput.style.marginLeft = '30px';
+        this.translatorServerBaseURLInput.style.width = '300px';
         this.translatorServerBaseURLInput.addEventListener('blur', function () {
             if (_this.translatorServerBaseURLInput.value) {
                 _this.translatorServerBaseURL = _this.translatorServerBaseURLInput.value;
@@ -101,7 +111,7 @@ var AutoTranslator = /** @class */ (function () {
             }
         });
         var toRightArrow = document.createElement('span');
-        toRightArrow.innerText = '→';
+        toRightArrow.innerText = '>';
         this.div.append(this.sourceLanguageSelect);
         this.div.append(toRightArrow);
         this.div.append(this.targetLanguageSelect);
@@ -119,10 +129,31 @@ var AutoTranslator = /** @class */ (function () {
         this.div.append(hDivider);
         this.div.append(this.choicesDiv);
         this.setLanguageSelector();
+        this.toggleButton = document.createElement('button');
+        this.toggleButton.style.position = 'fixed';
+        this.toggleButton.style.top = '12px';
+        this.toggleButton.style.left = '10px';
+        this.toggleButton.style.zIndex = "" + Number.MAX_SAFE_INTEGER;
+        this.toggleButton.addEventListener('click', function () {
+            _this.toggle();
+        });
         setTimeout(function () {
             document.body.append(_this.div);
+            document.body.append(_this.toggleButton);
         }, 3000);
+        this.toggle();
     }
+    AutoTranslator.prototype.toggle = function () {
+        this.hidden = !this.hidden;
+        if (this.hidden) {
+            this.div.style.display = 'none';
+            this.toggleButton.innerText = '>';
+        }
+        else {
+            this.div.style.display = 'block';
+            this.toggleButton.innerText = '<';
+        }
+    };
     AutoTranslator.prototype.retry = function () {
         this.setLanguageSelector();
     };
@@ -291,25 +322,27 @@ var AutoTranslator = /** @class */ (function () {
     return AutoTranslator;
 }());
 exports.AutoTranslator = AutoTranslator;
-windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator();
-// Rewrite Game_Message.add
-Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add;
-Game_Message.prototype.add = function (text) {
-    this.$add_ForAutoTranslatorPlugin(text);
-    windowExtend.autoTranslator.translateGameMessage(text);
-};
-Object.defineProperties(Game_Message.prototype, {
-    _choices: {
-        set: function (value) {
-            value = value || [];
-            if (value instanceof Array) {
-                windowExtend.autoTranslator.translateChoices(value);
+if (confirm('Auto translator requires network to operate, are you sure to use this function?')) {
+    windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator();
+    // Rewrite Game_Message.add
+    Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add;
+    Game_Message.prototype.add = function (text) {
+        this.$add_ForAutoTranslatorPlugin(text);
+        windowExtend.autoTranslator.translateGameMessage(text);
+    };
+    Object.defineProperties(Game_Message.prototype, {
+        _choices: {
+            set: function (value) {
+                value = value || [];
+                if (value instanceof Array) {
+                    windowExtend.autoTranslator.translateChoices(value);
+                }
+                this._wrappedChoices = value;
+            },
+            get: function () {
+                return this._wrappedChoices || [];
             }
-            this._wrappedChoices = value;
-        },
-        get: function () {
-            return this._wrappedChoices || [];
         }
-    }
-});
-// require('nw.gui').Window.get().showDevTools()
+    });
+    // require('nw.gui').Window.get().showDevTools()
+}

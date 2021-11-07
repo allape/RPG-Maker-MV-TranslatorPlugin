@@ -33,6 +33,8 @@ export class AutoTranslator implements IAutoTranslator {
     public sourceLanguage: string = 'ja'
     public targetLanguage: string = 'en'
 
+    private hidden: boolean = false
+
     public readonly http = axios.create({})
 
     private readonly div: HTMLDivElement
@@ -40,6 +42,8 @@ export class AutoTranslator implements IAutoTranslator {
     private readonly translatorServerBaseURLInput: HTMLInputElement
     private readonly sourceLanguageSelect: HTMLSelectElement
     private readonly targetLanguageSelect: HTMLSelectElement
+
+    private readonly toggleButton: HTMLButtonElement
 
     private readonly gameMessagesDiv: HTMLDivElement
     private readonly choicesDiv: HTMLDivElement
@@ -50,21 +54,30 @@ export class AutoTranslator implements IAutoTranslator {
 
         const hDivider = document.createElement('div')
         hDivider.style.height = '1px'
+        hDivider.style.margin = '5px 0'
         hDivider.style.backgroundColor = 'white'
 
         this.div = document.createElement('div')
         this.div.style.position = 'fixed'
         this.div.style.top = '0'
         this.div.style.left = '0'
-        this.div.style.width = '100%'
+        this.div.style.padding = '10px'
+        this.div.style.borderBottomRightRadius = '10px'
+        this.div.style.minWidth = '50%'
+        this.div.style.maxWidth = '100%'
         this.div.style.maxHeight = '50%'
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)'
         this.div.style.color = 'white'
         this.div.style.overflowY = 'auto'
+        this.div.style.overflowX = 'hidden'
+        this.div.style.whiteSpace = 'wrap'
+        this.div.style.verticalAlign = 'center'
         this.div.style.zIndex = `${Number.MAX_SAFE_INTEGER}`
 
         this.translatorServerBaseURLInput = document.createElement('input')
         this.translatorServerBaseURLInput.value = this.translatorServerBaseURL
+        this.translatorServerBaseURLInput.style.marginLeft = '30px'
+        this.translatorServerBaseURLInput.style.width = '300px'
         this.translatorServerBaseURLInput.addEventListener('blur', () => {
             if (this.translatorServerBaseURLInput.value) {
                 this.translatorServerBaseURL = this.translatorServerBaseURLInput.value
@@ -90,7 +103,7 @@ export class AutoTranslator implements IAutoTranslator {
         })
 
         const toRightArrow = document.createElement('span')
-        toRightArrow.innerText = '→'
+        toRightArrow.innerText = '>'
 
         this.div.append(this.sourceLanguageSelect)
         this.div.append(toRightArrow)
@@ -114,9 +127,32 @@ export class AutoTranslator implements IAutoTranslator {
 
         this.setLanguageSelector()
 
+        this.toggleButton = document.createElement('button')
+        this.toggleButton.style.position = 'fixed'
+        this.toggleButton.style.top = '12px'
+        this.toggleButton.style.left = '10px'
+        this.toggleButton.style.zIndex = `${Number.MAX_SAFE_INTEGER}`
+        this.toggleButton.addEventListener('click', () => {
+            this.toggle()
+        })
+
         setTimeout(() => {
             document.body.append(this.div)
+            document.body.append(this.toggleButton)
         }, 3000)
+
+        this.toggle()
+    }
+
+    private toggle () {
+        this.hidden = !this.hidden
+        if (this.hidden) {
+            this.div.style.display = 'none'
+            this.toggleButton.innerText = '>'
+        } else {
+            this.div.style.display = 'block'
+            this.toggleButton.innerText = '<'
+        }
     }
 
     private retry () {
@@ -230,27 +266,29 @@ export class AutoTranslator implements IAutoTranslator {
 
 }
 
-windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator()
-
-// Rewrite Game_Message.add
-Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
-Game_Message.prototype.add = function (text) {
-    this.$add_ForAutoTranslatorPlugin(text)
-    windowExtend.autoTranslator.translateGameMessage(text)
-}
-Object.defineProperties(Game_Message.prototype, {
-    _choices: {
-        set: function (value) {
-            value = value || []
-            if (value instanceof Array) {
-                windowExtend.autoTranslator.translateChoices(value)
-            }
-            this._wrappedChoices = value
-        },
-        get: function () {
-            return this._wrappedChoices || []
-        }
+if (confirm('Auto translator requires network to operate, are you sure to use this function?')) {
+    windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator()
+    
+    // Rewrite Game_Message.add
+    Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
+    Game_Message.prototype.add = function (text) {
+        this.$add_ForAutoTranslatorPlugin(text)
+        windowExtend.autoTranslator.translateGameMessage(text)
     }
-})
-
-// require('nw.gui').Window.get().showDevTools()
+    Object.defineProperties(Game_Message.prototype, {
+        _choices: {
+            set: function (value) {
+                value = value || []
+                if (value instanceof Array) {
+                    windowExtend.autoTranslator.translateChoices(value)
+                }
+                this._wrappedChoices = value
+            },
+            get: function () {
+                return this._wrappedChoices || []
+            }
+        }
+    })
+    
+    // require('nw.gui').Window.get().showDevTools()
+}
