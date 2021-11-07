@@ -219,6 +219,8 @@ var AutoTranslator = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (this.hidden)
+                            return [2 /*return*/, source];
                         if (!source || !source.trim())
                             return [2 /*return*/, source];
                         cache = this.getCurrentLanguageCache();

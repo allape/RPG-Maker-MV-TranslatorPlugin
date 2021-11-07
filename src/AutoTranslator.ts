@@ -195,6 +195,7 @@ export class AutoTranslator implements IAutoTranslator {
     }
 
     public async translate (source: string): Promise<string> {
+        if (this.hidden) return source
         if (!source || !source.trim()) return source
         const cache = this.getCurrentLanguageCache()
         if (cache[source]) {
