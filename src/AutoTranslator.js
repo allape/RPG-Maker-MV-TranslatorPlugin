@@ -201,6 +201,7 @@ var AutoTranslator = /** @class */ (function () {
                             })];
                     case 1:
                         res = _a.sent();
+                        this.retryButton.style.display = 'none';
                         return [2 /*return*/, res.data];
                     case 2:
                         e_1 = _a.sent();
