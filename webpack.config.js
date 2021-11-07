@@ -4,7 +4,7 @@ module.exports = {
   mode: 'production',
   entry: './src/AutoTranslator.js',
   output: {
-    filename: 'main.js',
+    filename: 'Auto_Translator.js',
     path: path.resolve(__dirname, 'dist'),
   },
 };

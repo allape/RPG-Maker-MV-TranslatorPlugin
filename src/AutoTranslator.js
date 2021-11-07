@@ -48,14 +48,17 @@ var AutoTranslator = /** @class */ (function () {
         this.sourceLanguage = 'ja';
         this.targetLanguage = 'en';
         this.http = axios_1.default.create({});
+        var space = document.createElement('span');
+        space.innerHTML = ' ';
         this.div = document.createElement('div');
         this.div.style.position = 'fixed';
-        this.div.style.bottom = '0';
+        this.div.style.top = '0';
         this.div.style.left = '0';
         this.div.style.width = '100%';
         this.div.style.maxHeight = '50%';
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)';
         this.div.style.color = 'white';
+        this.div.style.overflow = 'hidden';
         this.div.style.zIndex = "" + Number.MAX_SAFE_INTEGER;
         this.translatorServerBaseURLInput = document.createElement('input');
         this.translatorServerBaseURLInput.value = this.translatorServerBaseURL;
@@ -64,10 +67,14 @@ var AutoTranslator = /** @class */ (function () {
                 _this.translatorServerBaseURL = _this.translatorServerBaseURLInput.value;
             }
         });
+        this.div.append(this.translatorServerBaseURLInput);
+        this.div.append(space);
         this.sourceLanguageSelect = document.createElement('select');
         this.sourceLanguageSelect.value = this.sourceLanguage;
+        this.sourceLanguageSelect.style.width = '100px';
         this.targetLanguageSelect = document.createElement('select');
         this.targetLanguageSelect.value = this.targetLanguage;
+        this.targetLanguageSelect.style.width = '100px';
         this.sourceLanguageSelect.addEventListener('change', function () {
             if (_this._languages.find(function (i) { return i.code === _this.sourceLanguageSelect.value; })) {
                 _this.sourceLanguage = _this.sourceLanguageSelect.value;
@@ -78,16 +85,25 @@ var AutoTranslator = /** @class */ (function () {
                 _this.targetLanguage = _this.targetLanguageSelect.value;
             }
         });
+        var toRightArrow = document.createElement('span');
+        toRightArrow.innerText = '→';
+        this.div.append(this.sourceLanguageSelect);
+        this.div.append(toRightArrow);
+        this.div.append(this.targetLanguageSelect);
         this.retryButton = document.createElement('button');
         this.retryButton.innerText = 'Retry';
-        this.retryButton.addEventListener('click', this.retry);
+        this.retryButton.style.display = 'none';
+        this.retryButton.addEventListener('click', function () {
+            _this.retry();
+        });
         this.sourceTextDiv = document.createElement('div');
-        this.div.append(this.sourceLanguageSelect);
-        this.div.append(this.targetLanguageSelect);
+        this.sourceTextDiv.style.overflowY = 'auto';
         this.div.append(this.retryButton);
         this.div.append(this.sourceTextDiv);
         this.setLanguageSelector();
-        document.body.append(this.div);
+        setTimeout(function () {
+            document.body.append(_this.div);
+        }, 3000);
     }
     AutoTranslator.prototype.retry = function () {
         this.setLanguageSelector();
@@ -107,6 +123,8 @@ var AutoTranslator = /** @class */ (function () {
                             option = document.createElement('option');
                             option.innerText = lang.name;
                             option.value = lang.code;
+                            this.sourceLanguageSelect.append(option);
+                            this.targetLanguageSelect.append(option.cloneNode(true));
                         }
                         return [2 /*return*/];
                 }
@@ -135,6 +153,7 @@ var AutoTranslator = /** @class */ (function () {
                         return [2 /*return*/, res.data];
                     case 2:
                         e_1 = _a.sent();
+                        this.retryButton.style.display = 'block';
                         alert('failed to load support language, please retry: ' + this.stringifyError(e_1));
                         return [3 /*break*/, 3];
                     case 3: return [2 /*return*/, []];
@@ -144,7 +163,7 @@ var AutoTranslator = /** @class */ (function () {
     };
     AutoTranslator.prototype.translate = function (source) {
         return __awaiter(this, void 0, void 0, function () {
-            var formData, res, e_2;
+            var res, e_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -154,16 +173,16 @@ var AutoTranslator = /** @class */ (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        formData = new FormData();
-                        formData.set('q', source);
-                        formData.set('source ', this.sourceLanguage);
-                        formData.set('target ', this.targetLanguage);
-                        formData.set('format ', 'text');
                         return [4 /*yield*/, this.http.request({
                                 baseURL: this.translatorServerBaseURL,
                                 url: '/translate',
                                 method: 'post',
-                                data: formData,
+                                data: (new URLSearchParams({
+                                    q: source,
+                                    source: this.sourceLanguage,
+                                    target: this.targetLanguage,
+                                    format: 'text',
+                                })).toString(),
                             })];
                     case 2:
                         res = _a.sent();
@@ -185,12 +204,12 @@ var AutoTranslator = /** @class */ (function () {
 exports.AutoTranslator = AutoTranslator;
 windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator();
 // Rewrite Game_Message.add
-if (!Game_Message.prototype.$add_ForAutoTranslatorPlugin) {
-    Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add;
-    Game_Message.prototype.add = function (text) {
-        var _this = this;
-        windowExtend.autoTranslator.translate(text).then(function (translated) {
-            _this.$add_ForAutoTranslatorPlugin(translated);
-        });
-    };
-}
+Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add;
+Game_Message.prototype.add = function (text) {
+    var _this = this;
+    windowExtend.autoTranslator.addSourceText(text);
+    windowExtend.autoTranslator.translate(text).then(function (translated) {
+        // this._texts.push(translated)
+        _this.$add_ForAutoTranslatorPlugin(translated);
+    });
+};

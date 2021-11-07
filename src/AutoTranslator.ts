@@ -39,14 +39,18 @@ export class AutoTranslator implements IAutoTranslator {
     private readonly sourceTextDiv: HTMLDivElement
 
     constructor () {
+        const space = document.createElement('span')
+        space.innerHTML = ' '
+
         this.div = document.createElement('div')
         this.div.style.position = 'fixed'
-        this.div.style.bottom = '0'
+        this.div.style.top = '0'
         this.div.style.left = '0'
         this.div.style.width = '100%'
         this.div.style.maxHeight = '50%'
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)'
         this.div.style.color = 'white'
+        this.div.style.overflow = 'hidden'
         this.div.style.zIndex = `${Number.MAX_SAFE_INTEGER}`
 
         this.translatorServerBaseURLInput = document.createElement('input')
@@ -56,11 +60,15 @@ export class AutoTranslator implements IAutoTranslator {
                 this.translatorServerBaseURL = this.translatorServerBaseURLInput.value
             }
         })
+        this.div.append(this.translatorServerBaseURLInput)
+        this.div.append(space)
 
         this.sourceLanguageSelect = document.createElement('select')
         this.sourceLanguageSelect.value = this.sourceLanguage
+        this.sourceLanguageSelect.style.width = '100px'
         this.targetLanguageSelect = document.createElement('select')
         this.targetLanguageSelect.value = this.targetLanguage
+        this.targetLanguageSelect.style.width = '100px'
 
         this.sourceLanguageSelect.addEventListener('change', () => {
             if (this._languages.find(i => i.code === this.sourceLanguageSelect.value)) {
@@ -73,20 +81,31 @@ export class AutoTranslator implements IAutoTranslator {
             }
         })
 
-        this.retryButton = document.createElement('button')
-        this.retryButton.innerText = 'Retry'
-        this.retryButton.addEventListener('click', this.retry)
-
-        this.sourceTextDiv = document.createElement('div')
+        const toRightArrow = document.createElement('span')
+        toRightArrow.innerText = '→'
 
         this.div.append(this.sourceLanguageSelect)
+        this.div.append(toRightArrow)
         this.div.append(this.targetLanguageSelect)
+
+        this.retryButton = document.createElement('button')
+        this.retryButton.innerText = 'Retry'
+        this.retryButton.style.display = 'none'
+        this.retryButton.addEventListener('click', () => {
+            this.retry()
+        })
+
+        this.sourceTextDiv = document.createElement('div')
+        this.sourceTextDiv.style.overflowY = 'auto'
+
         this.div.append(this.retryButton)
         this.div.append(this.sourceTextDiv)
 
         this.setLanguageSelector()
 
-        document.body.append(this.div)
+        setTimeout(() => {
+            document.body.append(this.div)
+        }, 3000)
     }
 
     private retry () {
@@ -99,6 +118,8 @@ export class AutoTranslator implements IAutoTranslator {
             const option = document.createElement('option')
             option.innerText = lang.name
             option.value = lang.code
+            this.sourceLanguageSelect.append(option)
+            this.targetLanguageSelect.append(option.cloneNode(true))
         }
     }
 
@@ -117,6 +138,7 @@ export class AutoTranslator implements IAutoTranslator {
             })
             return res.data
         } catch (e) {
+            this.retryButton.style.display = 'block'
             alert('failed to load support language, please retry: ' + this.stringifyError(e))
         }
         return []
@@ -127,16 +149,16 @@ export class AutoTranslator implements IAutoTranslator {
             return this._cache[source]
         }
         try {
-            const formData = new FormData()
-            formData.set('q', source)
-            formData.set('source ', this.sourceLanguage)
-            formData.set('target ', this.targetLanguage)
-            formData.set('format ', 'text')
             const res = await this.http.request({
                 baseURL: this.translatorServerBaseURL,
                 url: '/translate',
                 method: 'post',
-                data: formData,
+                data: (new URLSearchParams({
+                    q: source,
+                    source: this.sourceLanguage,
+                    target: this.targetLanguage,
+                    format: 'text',
+                })).toString(),
             })
             return res.data.translatedText
         } catch (e) {
@@ -154,11 +176,11 @@ export class AutoTranslator implements IAutoTranslator {
 windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator()
 
 // Rewrite Game_Message.add
-if (!Game_Message.prototype.$add_ForAutoTranslatorPlugin) {
-    Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
-    Game_Message.prototype.add = function (text) {
-        windowExtend.autoTranslator.translate(text).then(translated => {
-            this.$add_ForAutoTranslatorPlugin(translated)
-        })
-    }
+Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
+Game_Message.prototype.add = function (text) {
+    windowExtend.autoTranslator.addSourceText(text)
+    windowExtend.autoTranslator.translate(text).then(translated => {
+        // this._texts.push(translated)
+        this.$add_ForAutoTranslatorPlugin(translated)
+    })
 }

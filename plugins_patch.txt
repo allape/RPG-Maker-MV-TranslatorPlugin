@@ -1,0 +1,1 @@
+{"name":"Auto_Translator","status":true,"description":"","parameters":{}}
