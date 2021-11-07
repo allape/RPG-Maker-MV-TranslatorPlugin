@@ -218,6 +218,8 @@ var AutoTranslator = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (!source || !source.trim())
+                            return [2 /*return*/, source];
                         cache = this.getCurrentLanguageCache();
                         if (cache[source]) {
                             return [2 /*return*/, cache[source]];
@@ -318,8 +320,11 @@ var AutoTranslator = /** @class */ (function () {
         Object.keys(mapper).forEach(function (key) {
             var sourceTextDiv = document.createElement('div');
             sourceTextDiv.innerText = key;
+            sourceTextDiv.style.fontSize = '12px';
+            sourceTextDiv.style.userSelect = 'text';
             var targetTextDiv = document.createElement('div');
-            targetTextDiv.style.paddingLeft = '20px';
+            targetTextDiv.style.fontSize = '14px';
+            targetTextDiv.style.marginBottom = '10px';
             targetTextDiv.innerText = mapper[key] === undefined ? '...' : mapper[key];
             container.append(sourceTextDiv);
             container.append(targetTextDiv);

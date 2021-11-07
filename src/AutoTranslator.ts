@@ -185,6 +185,7 @@ export class AutoTranslator implements IAutoTranslator {
                 url: '/languages',
                 method: 'get',
             })
+            this.retryButton.style.display = 'none'
             return res.data
         } catch (e) {
             this.retryButton.style.display = 'block'
@@ -194,6 +195,7 @@ export class AutoTranslator implements IAutoTranslator {
     }
 
     public async translate (source: string): Promise<string> {
+        if (!source || !source.trim()) return source
         const cache = this.getCurrentLanguageCache()
         if (cache[source]) {
             return cache[source]
@@ -263,8 +265,11 @@ export class AutoTranslator implements IAutoTranslator {
         Object.keys(mapper).forEach(key => {
             const sourceTextDiv = document.createElement('div')
             sourceTextDiv.innerText = key
+            sourceTextDiv.style.fontSize = '12px'
+            sourceTextDiv.style.userSelect = 'text'
             const targetTextDiv = document.createElement('div')
-            targetTextDiv.style.paddingLeft = '20px'
+            targetTextDiv.style.fontSize = '14px'
+            targetTextDiv.style.marginBottom = '10px'
             targetTextDiv.innerText = mapper[key] === undefined ? '...' : mapper[key]
             container.append(sourceTextDiv)
             container.append(targetTextDiv)
