@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -48,10 +59,14 @@ var AutoTranslator = /** @class */ (function () {
         this.sourceLanguage = 'ja';
         this.targetLanguage = 'en';
         this.http = axios_1.default.create({});
+        // region Game_Message
         this.gameMessages = {};
         this.lastGameMessageAppendedTime = Date.now();
         var space = document.createElement('span');
         space.innerHTML = ' ';
+        var hDivider = document.createElement('div');
+        hDivider.style.height = '1px';
+        hDivider.style.backgroundColor = 'white';
         this.div = document.createElement('div');
         this.div.style.position = 'fixed';
         this.div.style.top = '0';
@@ -99,6 +114,10 @@ var AutoTranslator = /** @class */ (function () {
         this.div.append(this.retryButton);
         this.gameMessagesDiv = document.createElement('div');
         this.div.append(this.gameMessagesDiv);
+        this.div.append(this.retryButton);
+        this.choicesDiv = document.createElement('div');
+        this.div.append(hDivider);
+        this.div.append(this.choicesDiv);
         this.setLanguageSelector();
         setTimeout(function () {
             document.body.append(_this.div);
@@ -207,32 +226,66 @@ var AutoTranslator = /** @class */ (function () {
                         }
                         this.gameMessages[source] = undefined;
                         this.lastGameMessageAppendedTime = Date.now();
-                        this.printGameMessage();
+                        this.buildTranslatedContent(this.gameMessages, this.gameMessagesDiv);
                         _a = this.gameMessages;
                         _b = source;
                         return [4 /*yield*/, this.translate(source)];
                     case 1:
                         _a[_b] = _c.sent();
-                        this.printGameMessage();
+                        this.buildTranslatedContent(this.gameMessages, this.gameMessagesDiv);
                         return [2 /*return*/];
                 }
             });
         });
     };
-    AutoTranslator.prototype.clearGameMessage = function () {
-        this.gameMessagesDiv.innerHTML = '';
+    // endregion
+    // region Choices
+    AutoTranslator.prototype.translateChoices = function (choices) {
+        return __awaiter(this, void 0, void 0, function () {
+            var mapper, _i, choices_1, choice, _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (!(choices.length === 0)) return [3 /*break*/, 1];
+                        this.choicesDiv.innerHTML = '';
+                        return [3 /*break*/, 5];
+                    case 1:
+                        mapper = choices.reduce(function (p, c) {
+                            var _a;
+                            return (__assign(__assign({}, p), (_a = {}, _a[c] = undefined, _a)));
+                        }, {});
+                        this.buildTranslatedContent(mapper, this.choicesDiv);
+                        _i = 0, choices_1 = choices;
+                        _c.label = 2;
+                    case 2:
+                        if (!(_i < choices_1.length)) return [3 /*break*/, 5];
+                        choice = choices_1[_i];
+                        _a = mapper;
+                        _b = choice;
+                        return [4 /*yield*/, this.translate(choice)];
+                    case 3:
+                        _a[_b] = _c.sent();
+                        this.buildTranslatedContent(mapper, this.choicesDiv);
+                        _c.label = 4;
+                    case 4:
+                        _i++;
+                        return [3 /*break*/, 2];
+                    case 5: return [2 /*return*/];
+                }
+            });
+        });
     };
-    AutoTranslator.prototype.printGameMessage = function () {
-        var _this = this;
-        this.clearGameMessage();
-        Object.keys(this.gameMessages).forEach(function (key) {
+    // endregion
+    AutoTranslator.prototype.buildTranslatedContent = function (mapper, container) {
+        container.innerHTML = '';
+        Object.keys(mapper).forEach(function (key) {
             var sourceTextDiv = document.createElement('div');
             sourceTextDiv.innerText = key;
             var targetTextDiv = document.createElement('div');
             targetTextDiv.style.paddingLeft = '20px';
-            targetTextDiv.innerText = _this.gameMessages[key] === undefined ? '...' : _this.gameMessages[key];
-            _this.gameMessagesDiv.append(sourceTextDiv);
-            _this.gameMessagesDiv.append(targetTextDiv);
+            targetTextDiv.innerText = mapper[key] === undefined ? '...' : mapper[key];
+            container.append(sourceTextDiv);
+            container.append(targetTextDiv);
         });
     };
     return AutoTranslator;
@@ -245,4 +298,18 @@ Game_Message.prototype.add = function (text) {
     this.$add_ForAutoTranslatorPlugin(text);
     windowExtend.autoTranslator.translateGameMessage(text);
 };
+Object.defineProperties(Game_Message.prototype, {
+    _choices: {
+        set: function (value) {
+            value = value || [];
+            if (value instanceof Array) {
+                windowExtend.autoTranslator.translateChoices(value);
+            }
+            this._wrappedChoices = value;
+        },
+        get: function () {
+            return this._wrappedChoices || [];
+        }
+    }
+});
 // require('nw.gui').Window.get().showDevTools()

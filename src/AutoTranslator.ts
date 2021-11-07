@@ -13,7 +13,10 @@ interface IAutoTranslator {
     languages: () => Promise<Language[]>
     translate: (source: string) => Promise<string>
     translateGameMessage: (source: string) => Promise<void>
+    translateChoices: (choices: string[]) => Promise<void>
 }
+
+type TranslateMapper = Record<string, string>
 
 interface IWindowExtend extends Window {
     autoTranslator: IAutoTranslator
@@ -39,10 +42,15 @@ export class AutoTranslator implements IAutoTranslator {
     private readonly targetLanguageSelect: HTMLSelectElement
 
     private readonly gameMessagesDiv: HTMLDivElement
+    private readonly choicesDiv: HTMLDivElement
 
     constructor () {
         const space = document.createElement('span')
         space.innerHTML = ' '
+
+        const hDivider = document.createElement('div')
+        hDivider.style.height = '1px'
+        hDivider.style.backgroundColor = 'white'
 
         this.div = document.createElement('div')
         this.div.style.position = 'fixed'
@@ -98,6 +106,11 @@ export class AutoTranslator implements IAutoTranslator {
 
         this.gameMessagesDiv = document.createElement('div')
         this.div.append(this.gameMessagesDiv)
+        this.div.append(this.retryButton)
+
+        this.choicesDiv = document.createElement('div')
+        this.div.append(hDivider)
+        this.div.append(this.choicesDiv)
 
         this.setLanguageSelector()
 
@@ -166,7 +179,9 @@ export class AutoTranslator implements IAutoTranslator {
         return e ? ('message' in e ? e.message : e) : 'unknown error'
     }
 
-    private gameMessages = {}
+    // region Game_Message
+
+    private gameMessages: TranslateMapper = {}
 
     private lastGameMessageAppendedTime = Date.now()
 
@@ -176,25 +191,40 @@ export class AutoTranslator implements IAutoTranslator {
         }
         this.gameMessages[source] = undefined
         this.lastGameMessageAppendedTime = Date.now()
-        this.printGameMessage()
+        this.buildTranslatedContent(this.gameMessages, this.gameMessagesDiv)
         this.gameMessages[source] = await this.translate(source)
-        this.printGameMessage()
+        this.buildTranslatedContent(this.gameMessages, this.gameMessagesDiv)
     }
 
-    private clearGameMessage () {
-        this.gameMessagesDiv.innerHTML = ''
+    // endregion
+
+    // region Choices
+
+    public async translateChoices (choices: string[]): Promise<void> {
+        if (choices.length === 0) {
+            this.choicesDiv.innerHTML = ''
+        } else {
+            const mapper: TranslateMapper = choices.reduce((p, c) => ({ ...p, [c]: undefined }), {})
+            this.buildTranslatedContent(mapper, this.choicesDiv)
+            for (const choice of choices) {
+                mapper[choice] = await this.translate(choice)
+                this.buildTranslatedContent(mapper, this.choicesDiv)
+            }
+        }
     }
 
-    private printGameMessage () {
-        this.clearGameMessage()
-        Object.keys(this.gameMessages).forEach(key => {
+    // endregion
+
+    private buildTranslatedContent (mapper: TranslateMapper, container: HTMLElement) {
+        container.innerHTML = ''
+        Object.keys(mapper).forEach(key => {
             const sourceTextDiv = document.createElement('div')
             sourceTextDiv.innerText = key
             const targetTextDiv = document.createElement('div')
             targetTextDiv.style.paddingLeft = '20px'
-            targetTextDiv.innerText = this.gameMessages[key] === undefined ? '...' : this.gameMessages[key]
-            this.gameMessagesDiv.append(sourceTextDiv)
-            this.gameMessagesDiv.append(targetTextDiv)
+            targetTextDiv.innerText = mapper[key] === undefined ? '...' : mapper[key]
+            container.append(sourceTextDiv)
+            container.append(targetTextDiv)
         })
     }
 
@@ -208,5 +238,19 @@ Game_Message.prototype.add = function (text) {
     this.$add_ForAutoTranslatorPlugin(text)
     windowExtend.autoTranslator.translateGameMessage(text)
 }
+Object.defineProperties(Game_Message.prototype, {
+    _choices: {
+        set: function (value) {
+            value = value || []
+            if (value instanceof Array) {
+                windowExtend.autoTranslator.translateChoices(value)
+            }
+            this._wrappedChoices = value
+        },
+        get: function () {
+            return this._wrappedChoices || []
+        }
+    }
+})
 
 // require('nw.gui').Window.get().showDevTools()
