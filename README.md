@@ -22,6 +22,9 @@
 
 ### Dev
 ```shell
+# install dependencies
+npm i
+
 # build production
 npm run-script build
 ```
