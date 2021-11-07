@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+
 declare const Game_Message
 
 interface Language {
@@ -9,9 +10,9 @@ interface Language {
 interface IAutoTranslator {
     translatorServerBaseURL: string
     http: AxiosInstance,
-    addSourceText: (text: string) => void
     languages: () => Promise<Language[]>
     translate: (source: string) => Promise<string>
+    translateGameMessage: (source: string) => Promise<void>
 }
 
 interface IWindowExtend extends Window {
@@ -24,7 +25,7 @@ export class AutoTranslator implements IAutoTranslator {
     private readonly _cache: Record<string, string> = {}
     private _languages: Language[] = []
 
-    public translatorServerBaseURL: string = 'https://libretranslate.de'
+    public translatorServerBaseURL: string = 'https://translate.mentality.rip'
 
     public sourceLanguage: string = 'ja'
     public targetLanguage: string = 'en'
@@ -36,7 +37,8 @@ export class AutoTranslator implements IAutoTranslator {
     private readonly translatorServerBaseURLInput: HTMLInputElement
     private readonly sourceLanguageSelect: HTMLSelectElement
     private readonly targetLanguageSelect: HTMLSelectElement
-    private readonly sourceTextDiv: HTMLDivElement
+
+    private readonly gameMessagesDiv: HTMLDivElement
 
     constructor () {
         const space = document.createElement('span')
@@ -50,7 +52,7 @@ export class AutoTranslator implements IAutoTranslator {
         this.div.style.maxHeight = '50%'
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)'
         this.div.style.color = 'white'
-        this.div.style.overflow = 'hidden'
+        this.div.style.overflowY = 'auto'
         this.div.style.zIndex = `${Number.MAX_SAFE_INTEGER}`
 
         this.translatorServerBaseURLInput = document.createElement('input')
@@ -64,10 +66,8 @@ export class AutoTranslator implements IAutoTranslator {
         this.div.append(space)
 
         this.sourceLanguageSelect = document.createElement('select')
-        this.sourceLanguageSelect.value = this.sourceLanguage
         this.sourceLanguageSelect.style.width = '100px'
         this.targetLanguageSelect = document.createElement('select')
-        this.targetLanguageSelect.value = this.targetLanguage
         this.targetLanguageSelect.style.width = '100px'
 
         this.sourceLanguageSelect.addEventListener('change', () => {
@@ -94,12 +94,10 @@ export class AutoTranslator implements IAutoTranslator {
         this.retryButton.addEventListener('click', () => {
             this.retry()
         })
-
-        this.sourceTextDiv = document.createElement('div')
-        this.sourceTextDiv.style.overflowY = 'auto'
-
         this.div.append(this.retryButton)
-        this.div.append(this.sourceTextDiv)
+
+        this.gameMessagesDiv = document.createElement('div')
+        this.div.append(this.gameMessagesDiv)
 
         this.setLanguageSelector()
 
@@ -121,15 +119,11 @@ export class AutoTranslator implements IAutoTranslator {
             this.sourceLanguageSelect.append(option)
             this.targetLanguageSelect.append(option.cloneNode(true))
         }
+        this.sourceLanguageSelect.value = this.sourceLanguage
+        this.targetLanguageSelect.value = this.targetLanguage
     }
 
-    public addSourceText(text: string) {
-        const span = document.createElement('div')
-        span.innerText = text
-        this.sourceTextDiv.append(span)
-    }
-
-    public async languages(): Promise<Language[]> {
+    public async languages (): Promise<Language[]> {
         try {
             const res = await this.http.request({
                 baseURL: this.translatorServerBaseURL,
@@ -144,7 +138,7 @@ export class AutoTranslator implements IAutoTranslator {
         return []
     }
 
-    public async translate(source: string): Promise<string> {
+    public async translate (source: string): Promise<string> {
         if (this._cache[source]) {
             return this._cache[source]
         }
@@ -160,15 +154,48 @@ export class AutoTranslator implements IAutoTranslator {
                     format: 'text',
                 })).toString(),
             })
-            return res.data.translatedText
+            const result = res.data.translatedText
+            this._cache[source] = result
+            return result
         } catch (e) {
-            alert('failed to translate: ' + this.stringifyError(e))
+            return `<failed to translate: ${this.stringifyError(e)}>` 
         }
-        return source
     }
 
     private stringifyError (e: any): string {
         return e ? ('message' in e ? e.message : e) : 'unknown error'
+    }
+
+    private gameMessages = {}
+
+    private lastGameMessageAppendedTime = Date.now()
+
+    public async translateGameMessage (source: string): Promise<void> {
+        if (Date.now() - this.lastGameMessageAppendedTime > 10) {
+            this.gameMessages = {}
+        }
+        this.gameMessages[source] = undefined
+        this.lastGameMessageAppendedTime = Date.now()
+        this.printGameMessage()
+        this.gameMessages[source] = await this.translate(source)
+        this.printGameMessage()
+    }
+
+    private clearGameMessage () {
+        this.gameMessagesDiv.innerHTML = ''
+    }
+
+    private printGameMessage () {
+        this.clearGameMessage()
+        Object.keys(this.gameMessages).forEach(key => {
+            const sourceTextDiv = document.createElement('div')
+            sourceTextDiv.innerText = key
+            const targetTextDiv = document.createElement('div')
+            targetTextDiv.style.paddingLeft = '20px'
+            targetTextDiv.innerText = this.gameMessages[key] === undefined ? '...' : this.gameMessages[key]
+            this.gameMessagesDiv.append(sourceTextDiv)
+            this.gameMessagesDiv.append(targetTextDiv)
+        })
     }
 
 }
@@ -178,9 +205,8 @@ windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator(
 // Rewrite Game_Message.add
 Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
 Game_Message.prototype.add = function (text) {
-    windowExtend.autoTranslator.addSourceText(text)
-    windowExtend.autoTranslator.translate(text).then(translated => {
-        // this._texts.push(translated)
-        this.$add_ForAutoTranslatorPlugin(translated)
-    })
+    this.$add_ForAutoTranslatorPlugin(text)
+    windowExtend.autoTranslator.translateGameMessage(text)
 }
+
+// require('nw.gui').Window.get().showDevTools()

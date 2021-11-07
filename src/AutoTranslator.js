@@ -44,10 +44,12 @@ var AutoTranslator = /** @class */ (function () {
         var _this = this;
         this._cache = {};
         this._languages = [];
-        this.translatorServerBaseURL = 'https://libretranslate.de';
+        this.translatorServerBaseURL = 'https://translate.mentality.rip';
         this.sourceLanguage = 'ja';
         this.targetLanguage = 'en';
         this.http = axios_1.default.create({});
+        this.gameMessages = {};
+        this.lastGameMessageAppendedTime = Date.now();
         var space = document.createElement('span');
         space.innerHTML = ' ';
         this.div = document.createElement('div');
@@ -58,7 +60,7 @@ var AutoTranslator = /** @class */ (function () {
         this.div.style.maxHeight = '50%';
         this.div.style.backgroundColor = 'rgba(0, 0, 0, .3)';
         this.div.style.color = 'white';
-        this.div.style.overflow = 'hidden';
+        this.div.style.overflowY = 'auto';
         this.div.style.zIndex = "" + Number.MAX_SAFE_INTEGER;
         this.translatorServerBaseURLInput = document.createElement('input');
         this.translatorServerBaseURLInput.value = this.translatorServerBaseURL;
@@ -70,10 +72,8 @@ var AutoTranslator = /** @class */ (function () {
         this.div.append(this.translatorServerBaseURLInput);
         this.div.append(space);
         this.sourceLanguageSelect = document.createElement('select');
-        this.sourceLanguageSelect.value = this.sourceLanguage;
         this.sourceLanguageSelect.style.width = '100px';
         this.targetLanguageSelect = document.createElement('select');
-        this.targetLanguageSelect.value = this.targetLanguage;
         this.targetLanguageSelect.style.width = '100px';
         this.sourceLanguageSelect.addEventListener('change', function () {
             if (_this._languages.find(function (i) { return i.code === _this.sourceLanguageSelect.value; })) {
@@ -96,10 +96,9 @@ var AutoTranslator = /** @class */ (function () {
         this.retryButton.addEventListener('click', function () {
             _this.retry();
         });
-        this.sourceTextDiv = document.createElement('div');
-        this.sourceTextDiv.style.overflowY = 'auto';
         this.div.append(this.retryButton);
-        this.div.append(this.sourceTextDiv);
+        this.gameMessagesDiv = document.createElement('div');
+        this.div.append(this.gameMessagesDiv);
         this.setLanguageSelector();
         setTimeout(function () {
             document.body.append(_this.div);
@@ -126,15 +125,12 @@ var AutoTranslator = /** @class */ (function () {
                             this.sourceLanguageSelect.append(option);
                             this.targetLanguageSelect.append(option.cloneNode(true));
                         }
+                        this.sourceLanguageSelect.value = this.sourceLanguage;
+                        this.targetLanguageSelect.value = this.targetLanguage;
                         return [2 /*return*/];
                 }
             });
         });
-    };
-    AutoTranslator.prototype.addSourceText = function (text) {
-        var span = document.createElement('div');
-        span.innerText = text;
-        this.sourceTextDiv.append(span);
     };
     AutoTranslator.prototype.languages = function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -163,7 +159,7 @@ var AutoTranslator = /** @class */ (function () {
     };
     AutoTranslator.prototype.translate = function (source) {
         return __awaiter(this, void 0, void 0, function () {
-            var res, e_2;
+            var res, result, e_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -186,18 +182,58 @@ var AutoTranslator = /** @class */ (function () {
                             })];
                     case 2:
                         res = _a.sent();
-                        return [2 /*return*/, res.data.translatedText];
+                        result = res.data.translatedText;
+                        this._cache[source] = result;
+                        return [2 /*return*/, result];
                     case 3:
                         e_2 = _a.sent();
-                        alert('failed to translate: ' + this.stringifyError(e_2));
-                        return [3 /*break*/, 4];
-                    case 4: return [2 /*return*/, source];
+                        return [2 /*return*/, "<failed to translate: " + this.stringifyError(e_2) + ">"];
+                    case 4: return [2 /*return*/];
                 }
             });
         });
     };
     AutoTranslator.prototype.stringifyError = function (e) {
         return e ? ('message' in e ? e.message : e) : 'unknown error';
+    };
+    AutoTranslator.prototype.translateGameMessage = function (source) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (Date.now() - this.lastGameMessageAppendedTime > 10) {
+                            this.gameMessages = {};
+                        }
+                        this.gameMessages[source] = undefined;
+                        this.lastGameMessageAppendedTime = Date.now();
+                        this.printGameMessage();
+                        _a = this.gameMessages;
+                        _b = source;
+                        return [4 /*yield*/, this.translate(source)];
+                    case 1:
+                        _a[_b] = _c.sent();
+                        this.printGameMessage();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    AutoTranslator.prototype.clearGameMessage = function () {
+        this.gameMessagesDiv.innerHTML = '';
+    };
+    AutoTranslator.prototype.printGameMessage = function () {
+        var _this = this;
+        this.clearGameMessage();
+        Object.keys(this.gameMessages).forEach(function (key) {
+            var sourceTextDiv = document.createElement('div');
+            sourceTextDiv.innerText = key;
+            var targetTextDiv = document.createElement('div');
+            targetTextDiv.style.paddingLeft = '20px';
+            targetTextDiv.innerText = _this.gameMessages[key] === undefined ? '...' : _this.gameMessages[key];
+            _this.gameMessagesDiv.append(sourceTextDiv);
+            _this.gameMessagesDiv.append(targetTextDiv);
+        });
     };
     return AutoTranslator;
 }());
@@ -206,10 +242,7 @@ windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator(
 // Rewrite Game_Message.add
 Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add;
 Game_Message.prototype.add = function (text) {
-    var _this = this;
-    windowExtend.autoTranslator.addSourceText(text);
-    windowExtend.autoTranslator.translate(text).then(function (translated) {
-        // this._texts.push(translated)
-        _this.$add_ForAutoTranslatorPlugin(translated);
-    });
+    this.$add_ForAutoTranslatorPlugin(text);
+    windowExtend.autoTranslator.translateGameMessage(text);
 };
+// require('nw.gui').Window.get().showDevTools()
