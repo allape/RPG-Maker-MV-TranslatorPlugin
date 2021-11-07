@@ -1,0 +1,17 @@
+{
+  "name": "rpg-maker-mv-translatorplugin",
+  "version": "1.0.0",
+  "description": "Auto-translator for RPG Maker MV",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [
+    "RPG-Maker-MV"
+  ],
+  "author": "allape",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  }
+}
