@@ -157,6 +157,11 @@ var AutoTranslator = /** @class */ (function () {
     AutoTranslator.prototype.retry = function () {
         this.setLanguageSelector();
     };
+    AutoTranslator.prototype.getCurrentLanguageCache = function () {
+        var key = this.sourceLanguage + ">" + this.targetLanguage;
+        this._cache[key] = this._cache[key] || {};
+        return this._cache[key];
+    };
     AutoTranslator.prototype.setLanguageSelector = function () {
         return __awaiter(this, void 0, void 0, function () {
             var _a, _i, _b, lang, option;
@@ -209,12 +214,13 @@ var AutoTranslator = /** @class */ (function () {
     };
     AutoTranslator.prototype.translate = function (source) {
         return __awaiter(this, void 0, void 0, function () {
-            var res, result, e_2;
+            var cache, res, result, e_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (this._cache[source]) {
-                            return [2 /*return*/, this._cache[source]];
+                        cache = this.getCurrentLanguageCache();
+                        if (cache[source]) {
+                            return [2 /*return*/, cache[source]];
                         }
                         _a.label = 1;
                     case 1:
@@ -233,7 +239,7 @@ var AutoTranslator = /** @class */ (function () {
                     case 2:
                         res = _a.sent();
                         result = res.data.translatedText;
-                        this._cache[source] = result;
+                        cache[source] = result;
                         return [2 /*return*/, result];
                     case 3:
                         e_2 = _a.sent();

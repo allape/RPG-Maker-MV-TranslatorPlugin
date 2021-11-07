@@ -25,7 +25,7 @@ const windowExtend: IWindowExtend = window as any
 
 export class AutoTranslator implements IAutoTranslator {
 
-    private readonly _cache: Record<string, string> = {}
+    private _cache: Record<string, Record<string, string>> = {}
     private _languages: Language[] = []
 
     public translatorServerBaseURL: string = 'https://translate.mentality.rip'
@@ -159,6 +159,12 @@ export class AutoTranslator implements IAutoTranslator {
         this.setLanguageSelector()
     }
 
+    private getCurrentLanguageCache (): Record<string, string> {
+        const key = `${this.sourceLanguage}>${this.targetLanguage}`
+        this._cache[key] = this._cache[key] || {}
+        return this._cache[key]
+    }
+
     private async setLanguageSelector () {
         this._languages = await this.languages()
         for (const lang of this._languages) {
@@ -188,8 +194,9 @@ export class AutoTranslator implements IAutoTranslator {
     }
 
     public async translate (source: string): Promise<string> {
-        if (this._cache[source]) {
-            return this._cache[source]
+        const cache = this.getCurrentLanguageCache()
+        if (cache[source]) {
+            return cache[source]
         }
         try {
             const res = await this.http.request({
@@ -204,7 +211,7 @@ export class AutoTranslator implements IAutoTranslator {
                 })).toString(),
             })
             const result = res.data.translatedText
-            this._cache[source] = result
+            cache[source] = result
             return result
         } catch (e) {
             return `<failed to translate: ${this.stringifyError(e)}>` 
