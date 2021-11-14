@@ -125,7 +125,7 @@ export class AutoTranslator implements IAutoTranslator {
         this.div.append(hDivider)
         this.div.append(this.choicesDiv)
 
-        this.setLanguageSelector()
+        this.setLanguageSelector().then()
 
         this.toggleButton = document.createElement('button')
         this.toggleButton.style.position = 'fixed'
@@ -156,7 +156,7 @@ export class AutoTranslator implements IAutoTranslator {
     }
 
     private retry () {
-        this.setLanguageSelector()
+        this.setLanguageSelector().then()
     }
 
     private getCurrentLanguageCache (): Record<string, string> {
@@ -189,7 +189,7 @@ export class AutoTranslator implements IAutoTranslator {
             return res.data
         } catch (e) {
             this.retryButton.style.display = 'block'
-            alert('failed to load support language, please retry: ' + this.stringifyError(e))
+            alert('failed to load support language, please retry: ' + AutoTranslator.stringifyError(e))
         }
         return []
     }
@@ -217,12 +217,8 @@ export class AutoTranslator implements IAutoTranslator {
             cache[source] = result
             return result
         } catch (e) {
-            return `<failed to translate: ${this.stringifyError(e)}>` 
+            return `<failed to translate: ${AutoTranslator.stringifyError(e)}>`
         }
-    }
-
-    private stringifyError (e: any): string {
-        return e ? ('message' in e ? e.message : e) : 'unknown error'
     }
 
     // region Game_Message
@@ -277,23 +273,27 @@ export class AutoTranslator implements IAutoTranslator {
         })
     }
 
+    private static stringifyError (e: any): string {
+        return e ? ('message' in e ? e.message : e) : 'unknown error'
+    }
+
 }
 
 if (confirm('Auto translator requires network to operate, are you sure to use this function?')) {
     windowExtend.autoTranslator = windowExtend.autoTranslator || new AutoTranslator()
-    
+
     // Rewrite Game_Message.add
     Game_Message.prototype.$add_ForAutoTranslatorPlugin = Game_Message.prototype.add
     Game_Message.prototype.add = function (text) {
         this.$add_ForAutoTranslatorPlugin(text)
-        windowExtend.autoTranslator.translateGameMessage(text)
+        windowExtend.autoTranslator.translateGameMessage(text).then()
     }
     Object.defineProperties(Game_Message.prototype, {
         _choices: {
             set: function (value) {
                 value = value || []
                 if (value instanceof Array) {
-                    windowExtend.autoTranslator.translateChoices(value)
+                    windowExtend.autoTranslator.translateChoices(value).then()
                 }
                 this._wrappedChoices = value
             },
@@ -302,6 +302,6 @@ if (confirm('Auto translator requires network to operate, are you sure to use th
             }
         }
     })
-    
+
     // require('nw.gui').Window.get().showDevTools()
 }
