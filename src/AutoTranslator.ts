@@ -113,7 +113,7 @@ export class AutoTranslator implements IAutoTranslator {
         this.retryButton.innerText = 'Retry'
         this.retryButton.style.display = 'none'
         this.retryButton.addEventListener('click', () => {
-            this.retry()
+            this.retry().then()
         })
         this.div.append(this.retryButton)
 
@@ -124,8 +124,6 @@ export class AutoTranslator implements IAutoTranslator {
         this.choicesDiv = document.createElement('div')
         this.div.append(hDivider)
         this.div.append(this.choicesDiv)
-
-        this.setLanguageSelector().then()
 
         this.toggleButton = document.createElement('button')
         this.toggleButton.style.position = 'fixed'
@@ -141,6 +139,8 @@ export class AutoTranslator implements IAutoTranslator {
             document.body.append(this.toggleButton)
         }, 3000)
 
+        this.setLanguageSelector().then()
+
         this.toggle()
     }
 
@@ -155,8 +155,8 @@ export class AutoTranslator implements IAutoTranslator {
         }
     }
 
-    private retry () {
-        this.setLanguageSelector().then()
+    private async retry () {
+        await this.setLanguageSelector()
     }
 
     private getCurrentLanguageCache (): Record<string, string> {
