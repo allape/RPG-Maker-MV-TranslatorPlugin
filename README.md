@@ -5,7 +5,7 @@
 ### Features
 - ✔ Message window translate
 - ✔ Choices translate
-- ❌ Menu translate
+- ❌ Menu or Item translate
 - ❌ Image text translate
 
 ### Translate Server: [https://github.com/LibreTranslate/LibreTranslate#mirrors](https://github.com/LibreTranslate/LibreTranslate#mirrors)
@@ -21,7 +21,7 @@
 - Start game, then a button will appear in the top-left corner in 3 seconds, clicking it will display the translation window 
 
 ### FAQ
-- there is no www/js/plugins in game folder
+- there is no ```www/js/plugins``` in game folder
     - use [EnigmaVBUnpacker](https://f95zone.to/threads/rpg-maker-mv-unpacker.417/post-3577739) to unpack game
 
 ### Dev
