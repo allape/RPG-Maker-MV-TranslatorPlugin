@@ -16,7 +16,7 @@
 - Replace the ```plugins_patch.txt``` in ```Cheat_Menu/``` with the same name file in release
 - Copy all files inside ```Cheat_Menu/``` into game folder
 - Run MVPluginPatcher.exe
-- Start game, then a button will appear in the top-left corner, clicking it will display the translation window 
+- Start game, then a button will appear in the top-left corner in 3 seconds, clicking it will display the translation window 
 
 ### FAQ
 - there is no www/js/plugins in game folder
