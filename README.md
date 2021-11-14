@@ -1,5 +1,7 @@
 ## Auto Translator for RPG Maker MV
 
+### ⚠️⚠️⚠️ This plugin will not replace the original text, it will display the translated text in an individual viewport ⚠️⚠️⚠️
+
 ### Features
 - ✔ Message window translate
 - ✔ Choices translate
